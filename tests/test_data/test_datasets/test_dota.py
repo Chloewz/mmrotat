@@ -21,7 +21,7 @@ def _create_dummy_results():
     return [boxes]
 
 
-@pytest.mark.parametrize('angle_version', ['oc'])
+# @pytest.mark.parametrize('angle_version', ['oc'])
 def test_dota_dataset(angle_version):
     """Test DOTA dataset.
 
@@ -36,17 +36,12 @@ def test_dota_dataset(angle_version):
     ]
     data_config = dict(
         type=SODAADataset,
-        version=angle_version,
-        ann_file='/mnt/d/exp/sodaa_sob/datasets-small/labels/',
+        angle_version=angle_version,
+        ann_file='/mnt/d/exp/sodaa_sob/datasets-small/Annotations/',
         img_prefix='/mnt/d/exp/sodaa_sob/datasets-small/images/',
-        pipeline=train_pipeline)
+        pipeline=train_pipeline,
+        ori_ann_file='/mnt/d/exp/sodaa_sob/datasets-small/rawAnnotations/')
     dataset = build_dataset(data_config)
-    # assert dataset.CLASSES == ('plane', 'baseball-diamond', 'bridge',
-    #                            'ground-track-field', 'small-vehicle',
-    #                            'large-vehicle', 'ship', 'tennis-court',
-    #                            'basketball-court', 'storage-tank',
-    #                            'soccer-ball-field', 'roundabout', 'harbor',
-    #                            'swimming-pool', 'helicopter')
     assert dataset.CLASSES == ('airplane', 'helicopter', 'small-vehicle', 'large-vehicle', 
                                'ship', 'container', 'storage-tank', 'swimming-pool','windmill')
 
@@ -61,7 +56,7 @@ def test_dota_dataset(angle_version):
     if osp.exists(tmp_filename):
         shutil.rmtree(tmp_filename)
     dataset.format_results(fake_results, submission_dir=tmp_filename)
-    shutil.rmtree(tmp_filename)
+    shutil.rmtree(tmp_filename) 
 
     # test filter_empty_gt=False
     full_data_config = dict(
@@ -75,5 +70,5 @@ def test_dota_dataset(angle_version):
     assert len(dataset) == 1 and len(full_dataset) == 2
 
 
-# if __name__ == '__main__':
-#     test_dota_dataset(['oc'])
+if __name__ == '__main__':
+    test_dota_dataset(['oc'])

@@ -64,6 +64,8 @@ class SODAADataset(CustomDataset):
             data_info = {}
             img_name = ann_file.replace('.json', '.jpg').split(os.sep)[-1]
             data_info['filename'] = img_name
+            img_id = img_name[:-4]
+            data_info['img_id'] = img_id
             data_info['ann'] = {}
             gt_bboxes = []
             gt_labels = []
@@ -150,6 +152,8 @@ class SODAADataset(CustomDataset):
             data_info = {}
             img_name = ann_file.replace('.json', '.jpg').split(os.sep)[-1]
             data_info['filename'] = img_name
+            img_id = img_name.split(os.sep)[-1][:-4]
+            data_info['img_id'] = img_id
             data_info['ann'] = {}
             gt_bboxes = []
             gt_labels = []
@@ -259,7 +263,7 @@ class SODAADataset(CustomDataset):
 
     def merge_det(self,
                   results,
-                  with_merge=True,
+                  with_merge=False,
                   nms_iou_thr=0.5,
                   nproc=10,
                   save_dir=None,
@@ -271,7 +275,7 @@ class SODAADataset(CustomDataset):
 
         # get patch results for evaluating
         if not with_merge:
-            results = [(data_info['id'], result)
+            results = [(data_info['img_id'], result)
                        for data_info, result in zip(self.data_infos, results)]
             # TODO:
             if save_dir is not None:
@@ -317,43 +321,6 @@ class SODAADataset(CustomDataset):
         print('Merge results completed, it costs %.1f seconds.'%(stop_time - start_time))
         return merged_results
 
-    def merge_det_dota(self, results, nproc=4):
-        """Merging patch bboxes into full image.
-
-        Args:
-            results (list): Testing results of the dataset.
-            nproc (int): number of process. Default: 4.
-        """
-        print('\n>>> Merge detected results of patch for whole image evaluating...')
-        collector = defaultdict(list)
-        for data_info, result in zip(self.data_infos, results):
-            filename = data_info['filename']
-            x_start, y_start = \
-                int(filename.split('___')[0].split('__')[-1]), \
-                int(filename.split('___')[-1].split('.')[0])
-            ori_name = filename.split('__')[0]
-            new_result = []
-            for i, res in enumerate(result):
-                bboxes, scores = res[:, :-1], res[:, [-1]]
-                bboxes = bt.translate(bboxes, x_start, y_start)
-                labels = np.zeros((bboxes.shape[0], 1)) + i
-                new_result.append(np.concatenate(
-                    [labels, bboxes, scores], axis=1
-                ))
-
-            new_result = np.concatenate(new_result, axis=0)
-            collector[ori_name].append(new_result)
-
-        merge_func = partial(_merge_func, CLASSES=self.CLASSES, iou_thr=0.1)
-        if nproc <= 1:
-            print('Single processing')
-            merged_results = mmcv.track_iter_progress(
-                (map(merge_func, collector.items()), len(collector)))
-        else:
-            print('Multiple processing')
-            merged_results = mmcv.track_parallel_progress(
-                merge_func, list(collector.items()), nproc)
-        return merged_results
 
     def poly2obb(self, poly):
         """Convert polygons to oriented bounding boxes.
@@ -409,9 +376,13 @@ class SODAADataset(CustomDataset):
             nproc (int): Processes used for computing TP and FP.
                 Default: 4.
         """
-        merged_results = self.merge_det(results, nproc=nproc)
-        merge_idx = [self.ori_img_ids.index(res[0]) for res in merged_results]
-        results = [res[1] for res in merged_results]    # exclude `id` for evaluation
+        # merged_results = self.merge_det(results, nproc=nproc)
+        # merge_idx = [self.ori_img_ids.index(res[0]) for res in merged_results]
+        # results = [res[1] for res in merged_results]    # exclude `id` for evaluation
+        slice_results = self.merge_det(results, nproc=nproc)
+        slice_idx = [self.img_ids.index(res[0]) for res in slice_results]
+        results = [res[1] for res in slice_results]
+
 
         if not isinstance(metric, str):
             assert len(metric) == 1
@@ -419,7 +390,8 @@ class SODAADataset(CustomDataset):
         allowed_metrics = ['mAP']
         if metric not in allowed_metrics:
             raise KeyError(f'metric {metric} is not supported')
-        annotations = [self.get_ori_ann_info(i) for i in merge_idx]
+        # annotations = [self.get_ori_ann_info(i) for i in merge_idx]
+        annotations = [self.get_ann_info(i) for i in slice_idx]
         # evaluation
         if iou_thr is None:
             iou_thrs = np.linspace(
@@ -527,29 +499,3 @@ def _merge_func(info, CLASSES, iou_thr):
         ori_img_results.append(results)
     return img_id, ori_img_results
 
-
-def _merge_func_mm(info, CLASSES, iou_thr):
-    """Merging patch bboxes into full image.
-
-    Args:
-        CLASSES (list): Label category.
-        iou_thr (float): Threshold of IoU.
-    """
-    img_id, label_dets = info
-    label_dets = np.concatenate(label_dets, axis=0)
-
-    labels, dets = label_dets[:, 0], label_dets[:, 1:]
-
-    big_img_results = []
-    for i in range(len(CLASSES)):
-        if len(dets[labels == i]) == 0:
-            big_img_results.append(dets[labels == i])
-        else:
-            try:
-                cls_dets = torch.from_numpy(dets[labels == i]).cuda()
-            except:  # noqa: E722
-                cls_dets = torch.from_numpy(dets[labels == i])
-            nms_dets, keep_inds = nms_rotated(cls_dets[:, :5], cls_dets[:, -1],
-                                              iou_thr)
-            big_img_results.append(nms_dets.cpu().numpy())
-    return img_id, big_img_results
