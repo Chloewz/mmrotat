@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from mmdet.datasets import build_dataset
 
-from mmrotate.datasets.dota import DOTADataset
+from mmrotate.datasets.sodaa import SODAADataset
 
 
 def _create_dummy_results():
@@ -35,21 +35,23 @@ def test_dota_dataset(angle_version):
         dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])
     ]
     data_config = dict(
-        type=DOTADataset,
+        type=SODAADataset,
         version=angle_version,
-        ann_file='tests/data/labelTxt/',
-        img_prefix='tests/data/images/',
+        ann_file='/mnt/d/exp/sodaa_sob/datasets-small/labels/',
+        img_prefix='/mnt/d/exp/sodaa_sob/datasets-small/images/',
         pipeline=train_pipeline)
     dataset = build_dataset(data_config)
-    assert dataset.CLASSES == ('plane', 'baseball-diamond', 'bridge',
-                               'ground-track-field', 'small-vehicle',
-                               'large-vehicle', 'ship', 'tennis-court',
-                               'basketball-court', 'storage-tank',
-                               'soccer-ball-field', 'roundabout', 'harbor',
-                               'swimming-pool', 'helicopter')
+    # assert dataset.CLASSES == ('plane', 'baseball-diamond', 'bridge',
+    #                            'ground-track-field', 'small-vehicle',
+    #                            'large-vehicle', 'ship', 'tennis-court',
+    #                            'basketball-court', 'storage-tank',
+    #                            'soccer-ball-field', 'roundabout', 'harbor',
+    #                            'swimming-pool', 'helicopter')
+    assert dataset.CLASSES == ('airplane', 'helicopter', 'small-vehicle', 'large-vehicle', 
+                               'ship', 'container', 'storage-tank', 'swimming-pool','windmill')
 
     # test eval
-    dataset.CLASSES = ('plane', )
+    dataset.CLASSES = ('airplane', )
     fake_results = _create_dummy_results()
     eval_results = dataset.evaluate(fake_results)
     np.testing.assert_almost_equal(eval_results['mAP'], 0.7272727)
@@ -63,11 +65,15 @@ def test_dota_dataset(angle_version):
 
     # test filter_empty_gt=False
     full_data_config = dict(
-        type=DOTADataset,
+        type=SODAADataset,
         version=angle_version,
-        ann_file='tests/data/labelTxt/',
-        img_prefix='tests/data/images/',
+        ann_file='/mnt/d/exp/sodaa_sob/datasets-small/labels/',
+        img_prefix='/mnt/d/exp/sodaa_sob/datasets-small/images/',
         pipeline=train_pipeline,
         filter_empty_gt=False)
     full_dataset = build_dataset(full_data_config)
     assert len(dataset) == 1 and len(full_dataset) == 2
+
+
+# if __name__ == '__main__':
+#     test_dota_dataset(['oc'])
