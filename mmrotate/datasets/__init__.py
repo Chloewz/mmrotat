@@ -4,7 +4,8 @@ from .dota import DOTADataset  # noqa: F401, F403
 from .hrsc import HRSCDataset  # noqa: F401, F403
 from .pipelines import *  # noqa: F401, F403
 from .sar import SARDataset  # noqa: F401, F403
-from .sodaa_dota import SODAA_DOTADataset
+# from .sodaa_dota import SODAA_DOTADataset
 from .sodaa import SODAADataset
+from .sodaa_dota import SODAA_DOTADataset
 
-__all__ = ['SARDataset', 'DOTADataset', 'build_dataset', 'HRSCDataset', 'SODAA_DOTADataset', 'SODAADataset']
+__all__ = ['SARDataset', 'DOTADataset', 'build_dataset', 'HRSCDataset', 'SODAADataset', 'SODAA_DOTADataset']

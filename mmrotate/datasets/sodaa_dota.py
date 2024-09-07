@@ -9,15 +9,19 @@ import warnings
 import zipfile
 from collections import defaultdict
 from functools import partial
+import itertools
 
 import mmcv
 import numpy as np
 import torch
 from mmcv.ops import nms_rotated
 from mmdet.datasets.custom import CustomDataset
+from terminaltables import AsciiTable
+from mmcv.utils import print_log
 
 from mmrotate.core import eval_rbbox_map, obb2poly_np, poly2obb_np
 from .builder import ROTATED_DATASETS
+from .sodaa_eval import SODAAeval
 
 
 @ROTATED_DATASETS.register_module()
@@ -30,10 +34,6 @@ class SODAA_DOTADataset(CustomDataset):
         version (str, optional): Angle representations. Defaults to 'oc'.
         difficulty (bool, optional): The difficulty threshold of GT.
     """
-    # CLASSES = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
-    #            'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
-    #            'basketball-court', 'storage-tank', 'soccer-ball-field',
-    #            'roundabout', 'harbor', 'swimming-pool', 'helicopter')
     CLASSES = ('airplane', 'helicopter', 'small-vehicle', 'large-vehicle', 
                'ship', 'container', 'storage-tank', 'swimming-pool','windmill')
 
@@ -44,17 +44,25 @@ class SODAA_DOTADataset(CustomDataset):
     def __init__(self,
                  ann_file,
                  pipeline,
-                 version='oc',
+                 version='le90',
                  difficulty=100,
                  **kwargs):
         self.version = version
         self.difficulty = difficulty
+        
 
         super(SODAA_DOTADataset, self).__init__(ann_file, pipeline, **kwargs)
+        self.cat_ids = self._get_cat_ids
 
     def __len__(self):
         """Total number of samples of data."""
         return len(self.data_infos)
+    
+    def _get_cat_ids(self):
+        cat_ids = dict()
+        for idx, cat in enumerate(self.CLASSES):
+            cat_ids[idx] = cat
+        return cat_ids
 
     def load_annotations(self, ann_folder):
         """
@@ -162,13 +170,13 @@ class SODAA_DOTADataset(CustomDataset):
         All set to 0.
         """
         self.flag = np.zeros(len(self), dtype=np.uint8)
-
+    
     def evaluate(self,
                  results,
                  metric='mAP',
                  logger=None,
                  proposal_nums=(100, 300, 1000),
-                 iou_thr=0.5,
+                 iou_thr=None,
                  scale_ranges=None,
                  nproc=4):
         """Evaluate the dataset.
@@ -197,22 +205,50 @@ class SODAA_DOTADataset(CustomDataset):
         if metric not in allowed_metrics:
             raise KeyError(f'metric {metric} is not supported')
         annotations = [self.get_ann_info(i) for i in range(len(self))]
+
+        # evaluation
+        if iou_thr is None:
+            iou_thrs = np.linspace(
+                0.5, 0.95, int(np.round((0.95-0.5)/0.05))+1, endpoint=True)
+
         eval_results = {}
         if metric == 'mAP':
-            assert isinstance(iou_thr, float)
+            # assert isinstance(iou_thr, float)
             mean_ap, _ = eval_rbbox_map(
                 results,
                 annotations,
                 scale_ranges=scale_ranges,
-                iou_thr=iou_thr,
+                iou_thr=0.5,
                 dataset=self.CLASSES,
                 logger=logger,
                 nproc=nproc)
             eval_results['mAP'] = mean_ap
         else:
             raise NotImplementedError
+        
+        SODAAEval = SODAAeval(annotations, results, numCats=len(self.CLASSES), nproc=nproc)
+        SODAAEval.params.iouThrs = iou_thrs
+
+        sodaa_metric_names = {
+            'AP': 0,
+            'AP_50':1,
+            'AP_75':2,
+            'AP_eS':3,
+            'AP_rS':4,
+            'AP_gS':5,
+            'AP_Normal':6,
+            'AR@20000':7,
+            'AR_eS@20000': 8,
+            'AR_rS@20000': 9,
+            'AR_gS@20000': 10,
+            'AR_Normal@20000': 11
+        }
+        SODAAEval.evaluate()
+        SODAAEval.accumulate()
+        SODAAEval.summarize()
 
         return eval_results
+
 
     def merge_det(self, results, nproc=4):
         """Merging patch bboxes into full image.
