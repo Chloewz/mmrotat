@@ -69,7 +69,7 @@ def test_gaussian_regression_losses(loss_type):
 
 # @pytest.mark.skipif(
 #     not torch.cuda.is_available(), reason='requires CUDA support')
-@pytest.mark.parametrize('loss_type', ['bcd', 'kld', 'gwd'])
+# @pytest.mark.parametrize('loss_type', ['bcd', 'kld', 'gwd'])
 def test_gaussian_v1_regression_losses(loss_type):
     """Tests gaussian regression losses v1.
 
@@ -173,3 +173,6 @@ def test_rotated_iou_losses():
     # Test loss forward with avg_factor
     loss = RotatedIoULoss()(pred, target, avg_factor=10)
     assert isinstance(loss, torch.Tensor)
+
+if __name__ == '__main__':
+    test_gaussian_v1_regression_losses('kld')

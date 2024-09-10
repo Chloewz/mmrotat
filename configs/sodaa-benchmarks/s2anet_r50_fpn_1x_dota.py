@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/datasets/sodaa.py', '../_base_/schedules/schedule_1x.py',
+    '../_base_/datasets/sodaa_dota.py', '../_base_/schedules/schedule_1x.py',
     '../_base_/default_runtime.py'
 ]
 
@@ -111,4 +111,4 @@ model = dict(
         max_per_img=2000))
 
 optimizer = dict(lr=0.005)
-
+randomness = dict(seed=23)

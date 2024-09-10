@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/datasets/sodaa.py', '../_base_/schedules/schedule_1x.py',
+    '../_base_/datasets/sodaa_dota.py', '../_base_/schedules/schedule_1x.py',
     '../_base_/default_runtime.py'
 ]
 
@@ -45,8 +45,8 @@ model = dict(
             target_means=(.0, .0, .0, .0, .0),
             target_stds=(1.0, 1.0, 1.0, 1.0, 1.0)),
         loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
+            type='SmoothFocalLoss',
+            # use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
             loss_weight=1.0),
@@ -74,8 +74,8 @@ model = dict(
             target_means=(0.0, 0.0, 0.0, 0.0, 0.0),
             target_stds=(1.0, 1.0, 1.0, 1.0, 1.0)),
         loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
+            type='SmoothFocalLoss',
+            # use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
             loss_weight=1.0),
@@ -111,4 +111,4 @@ model = dict(
         max_per_img=2000))
 
 optimizer = dict(lr=0.005)
-
+randomness = dict(seed=23)
