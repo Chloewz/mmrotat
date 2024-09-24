@@ -82,21 +82,20 @@ class S2ANet(RotatedBaseDetector):
         x = self.extract_feat(img)
 
         outs = self.fam_head(x)
-
-        loss_inputs = outs + (gt_bboxes, gt_labels, img_metas)
-        loss_base = self.fam_head.loss(
+        loss_inputs = outs + (gt_bboxes, gt_labels, img_metas)  # 组成一个输入列表
+        loss_base = self.fam_head.loss( 
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-        for name, value in loss_base.items():
+        for name, value in loss_base.items():   # 遍历每个损失项，添加到字典中
             losses[f'fam.{name}'] = value
 
-        rois = self.fam_head.refine_bboxes(*outs)
+        rois = self.fam_head.refine_bboxes(*outs)   # 进一步细化，得到最终的边界框预测结果
         # rois: list(indexed by images) of list(indexed by levels)
-        align_feat = self.align_conv(x, rois)
-        outs = self.odm_head(align_feat)
+        align_feat = self.align_conv(x, rois)   # 对齐卷积进行对齐
+        outs = self.odm_head(align_feat)    # 对齐结果输入
         loss_inputs = outs + (gt_bboxes, gt_labels, img_metas)
         loss_refine = self.odm_head.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore, rois=rois)
-        for name, value in loss_refine.items():
+        for name, value in loss_refine.items(): # 将目标检测损失加入字典
             losses[f'odm.{name}'] = value
 
         return losses

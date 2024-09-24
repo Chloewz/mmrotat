@@ -8,11 +8,15 @@ python tools/train.py --config configs/sodaa-benchmarks/s2anet_r50_fpn_1x.py --w
 
 # SODAA-DOTA S2ANET
 ## Train
-python tools/train.py --config configs/sodaa-benchmarks/s2anet_r50_fpn_1x_dota.py --work-dir /mnt/d/exp/sodaa_sob/4060/0909 --seed 23
+python tools/train.py --config configs/sodaa-benchmarks/s2anet_r50_fpn_1x_dota.py --work-dir /mnt/d/exp/sodaa_sob/4060/0923_smooth --seed 23
 
 ## Test
 python tools/test.py --config configs/sodaa-benchmarks/s2anet_r50_fpn_1x.py --checkpoint /mnt/d/exp/sodaa_sob/a6000result/0907/epoch_9.pth --eval mAP --show-dir /mnt/d/exp/sodaa_sob/a6000result/0907/visualize
 
 # SODAA-DOTA S2ANET SmoothFocalLoss
 ## Train
-python tools/train.py --config configs/sodaa-benchmarks/s2anet_r50_fpn_1x_dota_smooth.py --work-dir /mnt/d/exp/sodaa_sob/4060/0909_smooth --seed 23
+python tools/train.py --config configs/sodaa-benchmarks/s2anet_r50_fpn_1x_dota_smooth.py --work-dir /mnt/d/exp/sodaa_sob/4060/0923_smooth --resume-from /mnt/d/exp/sodaa_sob/a6000result/0907/epoch_9.pth --seed 23
+
+# SODAA-DOTA RETINANET 
+## Train
+python tools/train.py --config configs/sodaa-benchmarks/rotated_retinanet_obb_r50_fpn_1x_smooth.py --work-dir /mnt/d/exp/sodaa_sob/4060/0923_smooth --seed 23

@@ -191,4 +191,6 @@ def main():
 
 
 if __name__ == '__main__':
+    from mmrotate.utils import register_all_modules
+    register_all_modules(init_default_scope=True)
     main()

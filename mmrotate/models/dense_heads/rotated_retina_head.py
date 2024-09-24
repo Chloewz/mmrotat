@@ -156,7 +156,7 @@ class RotatedRetinaHead(RotatedAnchorHead):
 
             anchors = mlvl_anchors[lvl]
 
-            cls_score = cls_score.permute(0, 2, 3, 1)
+            cls_score = cls_score.permute(0, 2, 3, 1)   # permute是pytorch中的换位函数
             cls_score = cls_score.reshape(num_imgs, -1, self.num_anchors,
                                           self.cls_out_channels)
 
@@ -175,7 +175,8 @@ class RotatedRetinaHead(RotatedAnchorHead):
                 best_ind_i = best_ind[img_id]
                 best_pred_i = best_pred[img_id]
                 best_anchor_i = anchors.gather(
-                    dim=-2, index=best_ind_i).squeeze(dim=-2)
+                    dim=-2, index=best_ind_i).squeeze(dim=-2)   # squeeze去除size为1的维度，包括行和列。
+                    # 当维度大于等于2时，squeeze()无作用
                 best_bbox_i = self.bbox_coder.decode(best_anchor_i,
                                                      best_pred_i)
                 bboxes_list[img_id].append(best_bbox_i.detach())
@@ -203,20 +204,22 @@ class RotatedRetinaHead(RotatedAnchorHead):
 
         device = cls_scores[0].device
         featmap_sizes = [cls_scores[i].shape[-2:] for i in range(num_levels)]
-        mlvl_anchors = self.anchor_generator.grid_priors(
+        mlvl_anchors = self.anchor_generator.grid_priors(   # 生成锚框的位置信息
             featmap_sizes, device=device)
 
         bboxes_list = [[] for _ in range(num_imgs)]
 
         for lvl in range(num_levels):
             bbox_pred = bbox_preds[lvl]
-            bbox_pred = bbox_pred.permute(0, 2, 3, 1)
+            bbox_pred = bbox_pred.permute(0, 2, 3, 1)   # 将通道维放在最后一维
             bbox_pred = bbox_pred.reshape(num_imgs, -1, 5)
             anchors = mlvl_anchors[lvl]
 
             for img_id in range(num_imgs):
                 bbox_pred_i = bbox_pred[img_id]
-                decode_bbox_i = self.bbox_coder.decode(anchors, bbox_pred_i)
-                bboxes_list[img_id].append(decode_bbox_i.detach())
+                decode_bbox_i = self.bbox_coder.decode(anchors, bbox_pred_i)    # 使用decode方法将锚框和边界框预测解码为真实的边界框坐标decode_bbox_i
+                # 进行解码，也就是将预测的偏移量应用于基础框，生成解码后的边界框
+                bboxes_list[img_id].append(decode_bbox_i.detach())  
+                # detach()允许从计算图中分离张量。调用该方法后，创建一个新的张量，该张量与原始张量共享数据，但不再参与计算图的任何操作
 
         return bboxes_list

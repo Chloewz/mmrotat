@@ -45,10 +45,11 @@ model = dict(
             target_means=(.0, .0, .0, .0, .0),
             target_stds=(1.0, 1.0, 1.0, 1.0, 1.0)),
         loss_cls=dict(
-            type='SmoothFocalLoss',
-            # use_sigmoid=True,
+            type='LSFocalLoss',
+            use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
+            reduction='mean',
             loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0)),
     align_cfgs=dict(
@@ -74,10 +75,11 @@ model = dict(
             target_means=(0.0, 0.0, 0.0, 0.0, 0.0),
             target_stds=(1.0, 1.0, 1.0, 1.0, 1.0)),
         loss_cls=dict(
-            type='SmoothFocalLoss',
-            # use_sigmoid=True,
+            type='LSFocalLoss',
+            use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
+            reduction='mean',
             loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=0.11, loss_weight=1.0)),
     train_cfg=dict(
